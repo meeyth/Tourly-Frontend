@@ -1,85 +1,107 @@
-import { Tabs } from "expo-router";
 import {FontAwesome ,FontAwesome5  } from "@expo/vector-icons";
-import { TouchableOpacity } from "react-native";
+import { Tabs } from "expo-router";
+import { StyleSheet,Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
-const HomeLayout = () => {
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarShowLabel: false,
 
-        // 🔹 Remove Android ripple & iOS opacity
-        tabBarPressColor: "transparent",
-        tabBarButton: (props) => (
-          <TouchableOpacity
-            {...props}
-            activeOpacity={1}
-            android_ripple={{ color: "transparent" }}
-          />
-        ),
+function TabIcon({ focused, icon, title }: any) {
+    if (focused) {
+        return (
+            <View className=" bg-blue-400  justify-center items-center mt-4 rounded-lg w-20 h-10">
 
-        tabBarItemStyle: {
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          padding: 10,
-        },
-        tabBarStyle: {
-          borderRadius: 10,
-          marginHorizontal: 30,
-          marginBottom: 45,
-          height: 10,
-          position: "absolute",
-          overflow: "hidden",
-          borderWidth: 2,
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          headerShown: false,
-          title: "Home",
-          tabBarIcon: ({ color }) => (
-            <FontAwesome name="home" color={color} size={24} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          headerShown: false,
-          title: "Search",
-          tabBarIcon: ({ color }) => (
-            <FontAwesome name="compass" color={color} size={24} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="wishlist"
-        options={{
-          headerShown: false,
-          title: "Create",
-          tabBarIcon: ({ color }) => (
-           <FontAwesome5 name="map-marker-alt" size={23} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          headerShown: false,
-          title: "My Profile",
-          tabBarIcon: ({ color }) => (
-            <FontAwesome name="user-circle" size={24} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
-  );
-};
+                <FontAwesome5 name={icon} size={24} color="white" />
+            </View>
+                
+        );
+    }
 
-export default HomeLayout;
+    return (
+        <View className="size-full justify-center items-center mt-4 rounded-full">
+            <FontAwesome5 name={icon} size={24} color="#acd9f6" />
+        </View>
+    );
+}
+
+export default function TabsLayout() {
+    return (
+        <Tabs
+            screenOptions={{
+                tabBarShowLabel: false,
+                tabBarItemStyle: {
+                    width: "100%",
+                    height: "100%",
+                    justifyContent: "center",
+                    alignItems: "center",
+                },
+                tabBarStyle: {
+                    backgroundColor: "#ffffff",
+                    borderRadius: 10,
+                    marginHorizontal: 20,
+                    marginBottom: 36,
+                    height: 52,
+                    position: "absolute",
+                    overflow: "hidden",
+                    borderWidth: 1,
+                    //borderColor: "#0F0D23",
+                },
+            }}
+        >
+            <Tabs.Screen
+                name="index"
+                options={{
+                    title: "index",
+                    headerShown: false,
+                    tabBarIcon: ({ focused }) => (
+                        <TabIcon focused={focused} icon={"home"} title="Home" />
+                    ),
+                }}
+            />
+
+            <Tabs.Screen
+                name="explore"
+                options={{
+                    title: "explore",
+                    headerShown: false,
+                    tabBarIcon: ({ focused }) => (
+                        <TabIcon focused={focused} icon={"compass"} title="Search" />
+                    ),
+                }}
+            />
+
+            <Tabs.Screen
+                name="wishlist"
+                options={{
+                    title: "wishlist",
+                    headerShown: false,
+                    tabBarIcon: ({ focused }) => (
+                        <TabIcon focused={focused} icon={"map-marker-alt"} title="Save" />
+                    ),
+                }}
+            />
+
+            <Tabs.Screen
+                name="profile"
+                options={{
+                    title: "Profile",
+                    headerShown: false,
+                    tabBarIcon: ({ focused }) => (
+                        <TabIcon focused={focused} icon={"user-circle"} title="Profile" />
+                    ),
+                }}
+            />
+        </Tabs>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1, // Full screen
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    text: {
+        fontSize: 20,
+        color: "#fff",
+        fontWeight: "bold",
+    },
+})
