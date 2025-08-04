@@ -1,6 +1,6 @@
-import {FontAwesome ,FontAwesome5  } from "@expo/vector-icons";
+import {FontAwesome ,FontAwesome5  } from "@expo/vector-icons"; 
 import { Tabs } from "expo-router";
-import { StyleSheet,Text, View } from "react-native";
+import { StyleSheet,Text, View ,TouchableOpacity} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 
@@ -27,6 +27,14 @@ export default function TabsLayout() {
         <Tabs
             screenOptions={{
                 tabBarShowLabel: false,
+                tabBarPressColor: "transparent",
+        tabBarButton: (props) => (
+          <TouchableOpacity
+            {...props}
+            activeOpacity={1}
+            android_ripple={{ color: "transparent" }}
+          />
+        ),
                 tabBarItemStyle: {
                     width: "100%",
                     height: "100%",
