@@ -7,7 +7,7 @@ import { LinearGradient } from "expo-linear-gradient";
 function TabIcon({ focused, icon, title }: any) {
     if (focused) {
         return (
-            <View className=" bg-blue-400  justify-center items-center mt-4 rounded-lg w-20 h-10">
+            <View className=" bg-[#82cffb]  justify-center items-center mt-4 rounded-lg w-20 h-10">
 
                 <FontAwesome5 name={icon} size={24} color="white" />
             </View>
