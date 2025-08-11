@@ -22,7 +22,7 @@ export default function StyleCard() {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <TouchableOpacity className="items-center">
-              <View className="bg-white w-[24vw] h-[20vw] rounded-xl overflow-hidden shadow">
+              <View className="bg-white w-[15vw] h-[20vw] rounded-xl overflow-hidden shadow">
                 <Image
                   source={{ uri: item.image }}
                   className="w-full h-full rounded-xl"

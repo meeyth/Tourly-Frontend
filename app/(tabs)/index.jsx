@@ -8,6 +8,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  FlatList,
 } from "react-native";
 import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -22,7 +23,9 @@ import {
   FontAwesome6
 } from "@expo/vector-icons";
 import Filters from "../../components/Filters";
-import StyleCard from "../../components/StyleCard"
+import StyleCard from "../../components/StyleCard";
+import PopularCard from "../../components/PopularCard";
+
 
 const index = () => {
   return (
@@ -99,9 +102,14 @@ const index = () => {
             </TouchableOpacity>
           </View>
     <StyleCard/>
-       <View>
-        
-       </View>
+       <View className="flex flex-row items-center justify-between w-[90%] mx-auto m-5">
+            <View><Text className="text-xl font-bold ">Popular Destination <Entypo name="location" size={18} color="black" /></Text>
+            </View>
+            <TouchableOpacity>
+               <Entypo name="dots-three-horizontal" size={24} color="grey" />
+            </TouchableOpacity>
+          </View>
+          <PopularCard/>
       </SafeAreaView>
     </LinearGradient>
   );
