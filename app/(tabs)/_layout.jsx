@@ -4,7 +4,7 @@ import { StyleSheet,Text, View ,TouchableOpacity} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 
-function TabIcon({ focused, icon, title }: any) {
+function TabIcon({ focused, icon, title }) {
     if (focused) {
         return (
             <View className=" bg-[#82cffb]  justify-center items-center mt-4 rounded-lg w-20 h-10">
@@ -55,9 +55,9 @@ export default function TabsLayout() {
             }}
         >
             <Tabs.Screen
-                name="index"
+                name="home"
                 options={{
-                    title: "index",
+                    title: "home",
                     headerShown: false,
                     tabBarIcon: ({ focused }) => (
                         <TabIcon focused={focused} icon={"home"} title="Home" />
