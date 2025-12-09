@@ -7,9 +7,9 @@ import { LinearGradient } from "expo-linear-gradient";
 function TabIcon({ focused, icon, title }) {
     if (focused) {
         return (
-            <View className=" bg-[#82cffb]  justify-center items-center mt-4 rounded-lg w-20 h-10">
+            <View className=" bg-[#82cffb]  justify-center items-center mt-5 rounded-lg w-16 h-10">
 
-                <FontAwesome5 name={icon} size={24} color="white" />
+                <FontAwesome5 name={icon} size={26} color="white" />
             </View>
                 
         );
@@ -17,7 +17,7 @@ function TabIcon({ focused, icon, title }) {
 
     return (
         <View className="size-full justify-center items-center mt-4 rounded-full">
-            <FontAwesome5 name={icon} size={24} color="#acd9f6" />
+            <FontAwesome5 name={icon} size={22} color="#acd9f6" />
         </View>
     );
 }
@@ -45,7 +45,7 @@ export default function TabsLayout() {
                     backgroundColor: "#ffffff",
                     borderRadius: 10,
                     marginHorizontal: 20,
-                    marginBottom: 36,
+                    marginBottom: 38,
                     height: 52,
                     position: "absolute",
                     overflow: "hidden",
@@ -72,6 +72,17 @@ export default function TabsLayout() {
                     headerShown: false,
                     tabBarIcon: ({ focused }) => (
                         <TabIcon focused={focused} icon={"compass"} title="Search" />
+                    ),
+                }}
+            />
+
+                <Tabs.Screen
+                name="add_post"
+                options={{
+                    title: "add_post",
+                    headerShown: false,
+                    tabBarIcon: ({ focused }) => (
+                        <TabIcon focused={focused} icon={"plus"} title="Add" />
                     ),
                 }}
             />
