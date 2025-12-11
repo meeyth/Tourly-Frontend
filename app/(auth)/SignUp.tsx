@@ -63,7 +63,7 @@ const SignUp = () => {
       } as any);
 
       const response = await registerUser(formData).unwrap();
-      console.log("✅ Registration successful:", response);
+      console.log("Registration successful:", response);
 
       const token = response?.data?.accessToken;
       if (token) {
@@ -74,7 +74,7 @@ const SignUp = () => {
       Alert.alert("Success", "Account created successfully!");
       router.replace("/(tabs)/home");
     } catch (error: any) {
-      console.error("❌ Registration error:", error);
+      console.error("Registration error:", error);
       Alert.alert("Error", error?.data?.message || "Something went wrong");
     }
   };

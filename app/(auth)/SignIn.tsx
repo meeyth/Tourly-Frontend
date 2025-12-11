@@ -19,7 +19,6 @@ const SignIn = () => {
 
   const [loginUser, { isLoading }] = usePostUserLoginMutation();
 
-  // ✅ Auto-login if token exists
   useEffect(() => {
     (async () => {
       const token = await AsyncStorage.getItem("accessToken");
@@ -46,7 +45,7 @@ const SignIn = () => {
     } catch (error:any) {
       const message = error?.data?.message || "Invalid credentials";
       Alert.alert("Error", message);
-      console.error("❌ Login error:", error);
+      console.error("Login error:", error);
     }
   };
 
