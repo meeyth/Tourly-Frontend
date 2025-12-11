@@ -12,9 +12,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 
-const CLOUD_NAME = "YOUR_CLOUD_NAME";
-const UPLOAD_PRESET = "YOUR_UPLOAD_PRESET";
+// Cloudinary Config
+const CLOUD_NAME = "dmbnchoqr";
+const UPLOAD_PRESET = "images";
+const CLOUDINARY_API_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
 
 const Add_Post = () => {
   const [title, setTitle] = useState("");
@@ -24,6 +27,7 @@ const Add_Post = () => {
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Pick Image
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -36,24 +40,29 @@ const Add_Post = () => {
     }
   };
 
-  // Cloudinary Upload
-  const uploadToCloudinary = async (localUri) => {
-    const data = new FormData();
-    data.append("file", {
-      uri: localUri,
-      type: "image/jpeg",
-      name: "upload.jpg",
-    });
-    data.append("upload_preset", UPLOAD_PRESET);
-    data.append("cloud_name", CLOUD_NAME);
+  // Cloudinary Upload Function
+  const uploadToCloudinary = async (imageUri) => {
+    try {
+      const formData = new FormData();
 
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
-      { method: "POST", body: data }
-    );
+      formData.append("file", {
+        uri: imageUri,
+        type: "image/jpeg",
+        name: `post_${Date.now()}.jpg`,
+      });
 
-    const uploadData = await res.json();
-    return uploadData.secure_url;
+      formData.append("upload_preset", UPLOAD_PRESET);
+
+      const response = await axios.post(CLOUDINARY_API_URL, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      return response.data.secure_url; // Return image URL
+    } catch (error) {
+      console.log("Cloudinary upload error:", error);
+      Alert.alert("Error", "Failed to upload image");
+      return null;
+    }
   };
 
   // Submit Post
@@ -62,11 +71,14 @@ const Add_Post = () => {
       return Alert.alert("Missing Fields", "Please fill all required fields.");
     }
 
-    try {
-      setLoading(true);
+    setLoading(true);
 
+    try {
       let uploadedImageUrl = null;
-      if (image) uploadedImageUrl = await uploadToCloudinary(image);
+
+      if (image) {
+        uploadedImageUrl = await uploadToCloudinary(image);
+      }
 
       const token = await AsyncStorage.getItem("authToken");
 
@@ -77,19 +89,21 @@ const Add_Post = () => {
         images: uploadedImageUrl ? [uploadedImageUrl] : [],
       };
 
-      const response = await fetch("https://tourly-backend-3fa2.onrender.com/api/v1/posts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(postData),
-      });
+      const response = await fetch(
+        "https://tourly-backend-3fa2.onrender.com/api/v1/posts",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(postData),
+        }
+      );
 
       const json = await response.json();
 
       if (!response.ok) {
-        console.log(json);
         Alert.alert("Error", json.message || "Failed to create post");
         return;
       }
@@ -102,8 +116,9 @@ const Add_Post = () => {
       setCountry("");
       setImage(null);
     } catch (error) {
-      console.log(error);
-      Alert.alert("Error", "Something went wrong");
+      console.log("Full error:", error);
+      console.log("Error message:", error.message);
+      Alert.alert("Error", error.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -118,9 +133,7 @@ const Add_Post = () => {
     >
       <SafeAreaView className="flex-1 w-full">
         <ScrollView contentContainerStyle={{ padding: 20 }}>
-          <Text className="text-2xl font-bold text-center mb-5">
-            Add New Post
-          </Text>
+          <Text className="text-2xl font-bold text-center mb-5">Add New Post</Text>
 
           <TextInput
             className="bg-white p-3 rounded-xl border border-gray-300 mb-4"
