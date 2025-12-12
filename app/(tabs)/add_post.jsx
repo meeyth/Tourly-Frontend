@@ -12,12 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
-
-// Cloudinary Config
-const CLOUD_NAME = "dmbnchoqr";
-const UPLOAD_PRESET = "images";
-const CLOUDINARY_API_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
+import { useRouter } from "expo-router";
 
 const Add_Post = () => {
   const [title, setTitle] = useState("");
@@ -27,98 +22,85 @@ const Add_Post = () => {
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const router = useRouter();
+
   // Pick Image
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 1,
+      aspect: [4, 3],
+      quality: 0.8,
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
+      setImage(result.assets[0]); // keep full object
     }
   };
 
-  // Cloudinary Upload Function
-  const uploadToCloudinary = async (imageUri) => {
-    try {
-      const formData = new FormData();
-
-      formData.append("file", {
-        uri: imageUri,
-        type: "image/jpeg",
-        name: `post_${Date.now()}.jpg`,
-      });
-
-      formData.append("upload_preset", UPLOAD_PRESET);
-
-      const response = await axios.post(CLOUDINARY_API_URL, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      return response.data.secure_url; // Return image URL
-    } catch (error) {
-      console.log("Cloudinary upload error:", error);
-      Alert.alert("Error", "Failed to upload image");
-      return null;
-    }
-  };
-
-  // Submit Post
+  // Submit Post (FormData → Backend)
   const handleSubmit = async () => {
-    if (!title || !city || !country) {
-      return Alert.alert("Missing Fields", "Please fill all required fields.");
+    if (!title || !city || !country || !image) {
+      return Alert.alert("Error", "Please fill all fields and add image");
     }
 
-    setLoading(true);
-
     try {
-      let uploadedImageUrl = null;
+      setLoading(true);
 
-      if (image) {
-        uploadedImageUrl = await uploadToCloudinary(image);
-      }
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("description", description);
+      formData.append("city", city);
+      formData.append("country", country);
 
-      const token = await AsyncStorage.getItem("authToken");
+      formData.append("image", {
+        uri: image.uri,
+        type: image.mimeType || "image/jpeg",
+        name: image.fileName || "post.jpg",
+      });
 
-      const postData = {
-        title,
-        description,
-        location: { city, country },
-        images: uploadedImageUrl ? [uploadedImageUrl] : [],
-      };
+      const token = await AsyncStorage.getItem("accessToken");
 
       const response = await fetch(
         "https://tourly-backend-3fa2.onrender.com/api/v1/posts",
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            // ❗ DO NOT SET Content-Type manually → RN handles it
           },
-          body: JSON.stringify(postData),
+          body: formData,
         }
       );
 
-      const json = await response.json();
+      // Read raw response text first (avoids 'Already read' errors),
+      // then attempt to parse JSON. If parsing fails, keep the raw text.
+      const rawText = await response.text();
+      let data;
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch (parseErr) {
+        console.log("Backend returned non-JSON response:", rawText);
+        data = { message: rawText };
+      }
 
       if (!response.ok) {
-        Alert.alert("Error", json.message || "Failed to create post");
-        return;
+        console.log("Backend error (status:", response.status, "):", data);
+        return Alert.alert("Error", data.message || "Something went wrong");
       }
 
       Alert.alert("Success", "Post created successfully!");
+      router.back();
 
+      // reset
       setTitle("");
       setDescription("");
       setCity("");
       setCountry("");
       setImage(null);
-    } catch (error) {
-      console.log("Full error:", error);
-      console.log("Error message:", error.message);
-      Alert.alert("Error", error.message || "Something went wrong");
+    } catch (err) {
+      console.log("Upload error:", err);
+      Alert.alert("Error", err.message || "Upload failed");
     } finally {
       setLoading(false);
     }
@@ -133,7 +115,8 @@ const Add_Post = () => {
     >
       <SafeAreaView className="flex-1 w-full">
         <ScrollView contentContainerStyle={{ padding: 20 }}>
-          <Text className="text-2xl font-bold text-center mb-5">Add New Post</Text>
+
+          <Text className="text-2xl font-bold text-center mb-6">Add New Post</Text>
 
           <TextInput
             className="bg-white p-3 rounded-xl border border-gray-300 mb-4"
@@ -145,13 +128,11 @@ const Add_Post = () => {
           <TextInput
             className="bg-white p-3 rounded-xl border border-gray-300 mb-4 h-28"
             placeholder="Description"
-            multiline
             value={description}
             onChangeText={setDescription}
+            multiline
             textAlignVertical="top"
           />
-
-          <Text className="text-lg font-semibold mt-2 mb-2">Location</Text>
 
           <TextInput
             className="bg-white p-3 rounded-xl border border-gray-300 mb-4"
@@ -167,22 +148,24 @@ const Add_Post = () => {
             onChangeText={setCountry}
           />
 
+          {/* Image Upload Button */}
           <TouchableOpacity
             className="bg-blue-600 p-3 rounded-xl items-center mb-4"
             onPress={pickImage}
           >
             <Text className="text-white font-semibold">
-              {image ? "Change Image" : "Select an Image"}
+              {image ? "Change Image" : "Upload Image"}
             </Text>
           </TouchableOpacity>
 
           {image && (
             <Image
-              source={{ uri: image }}
+              source={{ uri: image.uri }}
               className="w-full h-52 rounded-xl mb-4"
             />
           )}
 
+          {/* Submit */}
           <TouchableOpacity
             className="bg-green-600 p-4 rounded-xl items-center"
             onPress={handleSubmit}
@@ -192,6 +175,7 @@ const Add_Post = () => {
               {loading ? "Uploading..." : "Submit Post"}
             </Text>
           </TouchableOpacity>
+
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
