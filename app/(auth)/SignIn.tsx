@@ -27,22 +27,17 @@ const SignIn = () => {
   }, []);
 
   const onLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      return Alert.alert("Error", "Please enter valid email and password");
-    }
+  try {
+    const response = await loginUser({ email, password }).unwrap();
+    const token = response?.data?.accessToken;
+    const userId = response?.data?.user?._id;
 
-    try {
-      const response = await loginUser({ email, password }).unwrap();
-      const token = response?.data?.accessToken;
+    if (token) await AsyncStorage.setItem("accessToken", token);
+    if (userId) await AsyncStorage.setItem("userId", userId);
 
-      if (token) {
-        await AsyncStorage.setItem("accessToken", token);
-        console.log("🔐 Token saved:", token);
-      }
-
-      Alert.alert("Success", "User signed in successfully!");
-      router.replace("/(tabs)/home");
-    } catch (error:any) {
+    Alert.alert("Success", "User signed in successfully!");
+    router.replace("/(tabs)/home");
+  } catch (error:any) {
       const message = error?.data?.message || "Invalid credentials";
       Alert.alert("Error", message);
       console.error("Login error:", error);

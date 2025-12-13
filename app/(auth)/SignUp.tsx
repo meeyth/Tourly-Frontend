@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   ImageBackground,
 } from "react-native";
-import React, { useState } from "react";
+import * as React from "react";
+import { useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import CustomButton from "@/components/CustomButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";

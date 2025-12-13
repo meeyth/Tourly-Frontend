@@ -1,76 +1,98 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, Image, TouchableOpacity } from "react-native";
+import { View, Text, Image, TouchableOpacity } from "react-native";
+import React, { useState, useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { toggleLikePost } from "@/services/post.service";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function PopularCard({ data = [] }) {
-  const [posts, setPosts] = useState([]);
+const PopularCard = ({ data }) => {
+  const [posts, setPosts] = useState(data);
+  const [userId, setUserId] = useState(null);
 
+  // Get current user ID from AsyncStorage
   useEffect(() => {
-    setPosts(data);
-  }, [data]);
+    AsyncStorage.getItem("userId").then((id) => {
+      if (!id) return;
+      try {
+        setUserId(JSON.parse(id)); // if stored as JSON
+      } catch {
+        setUserId(id); // if stored as plain string
+      }
+    });
+  }, []);
 
   const handleLike = async (postId) => {
-  try {
-    const updatedPost = await toggleLikePost(postId);
+    try {
+      const token = await AsyncStorage.getItem("accessToken");
 
-    setPosts((prev) =>
-      prev.map((post) =>
-        post._id === postId ? updatedPost : post
-      )
-    );
-  } catch (error) {
-    console.log("Like error:", error.message);
-  }
-};
+      const res = await fetch(
+        `https://tourly-backend-3fa2.onrender.com/api/v1/posts/${postId}/like`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Like failed");
+
+      // Update post in state with new likes from backend
+      setPosts((prev) =>
+        prev.map((post) =>
+          post._id === postId ? json.data : post
+        )
+      );
+    } catch (err) {
+      console.log("Like error:", err.message);
+    }
+  };
 
   return (
-    <FlatList
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      data={posts}
-      keyExtractor={(item) => item._id}
-      contentContainerStyle={{ paddingHorizontal: 16 }}
-      renderItem={({ item }) => {
-        const liked =
-          item.likes?.length > 0 &&
-          item.likes.some((l) => l === "temp" || l?._id);
+    <View>
+      {posts.map((post) => {
+        const normalizedUserId = userId ? String(userId).replace(/"/g, "") : null;
+
+        const isLiked =
+          !!normalizedUserId &&
+          post.likes?.some((like) =>
+            typeof like === "object"
+              ? String(like._id) === normalizedUserId
+              : String(like) === normalizedUserId
+          );
 
         return (
-          <View className="mr-4">
-            <View className="bg-white rounded-2xl overflow-hidden w-40">
-              <Image
-                source={{ uri: item.images?.[0] }}
-                className="w-full h-28"
-              />
+          <View key={post._id} className="mb-5 bg-white rounded-2xl p-3">
+            <Image
+              source={{ uri: post.images[0] }}
+              className="w-full h-52 rounded-xl"
+            />
 
-              {/* ❤️ LIKE BUTTON */}
-              <TouchableOpacity
-                className="absolute top-2 right-2 bg-white p-1 rounded-full"
-                onPress={() => handleLike(item._id)}
-              >
-                <Ionicons
-                  name={liked ? "heart" : "heart-outline"}
-                  size={20}
-                  color="red"
-                />
-              </TouchableOpacity>
-
-              {/* ❤️ LIKE COUNT */}
-              <View className="absolute bottom-0 left-0 bg-white px-2 py-1 rounded-tr-lg">
-                <Text className="text-xs font-semibold">
-                  ❤️ {item.likes.length}
+            <View className="flex-row justify-between items-center mt-3">
+              <View>
+                <Text className="font-bold text-lg">{post.title}</Text>
+                <Text className="text-gray-500 text-sm">
+                  {post.location.city}, {post.location.country}
                 </Text>
               </View>
+
+              {/* ❤️ LIKE BUTTON */}
+              <TouchableOpacity onPress={() => handleLike(post._id)}>
+                <Ionicons
+                  name={isLiked ? "heart" : "heart-outline"}
+                  size={26}
+                  color={isLiked ? "#ef4444" : "#555"}
+                />
+              </TouchableOpacity>
             </View>
 
-            <Text className="mt-2 text-sm font-medium">
-              {item.location?.city}
+            <Text className="text-gray-500 mt-1">
+              {post.likes?.length || 0} likes
             </Text>
           </View>
         );
-      }}
-    />
+      })}
+    </View>
   );
-}
+};
+
+export default PopularCard;
