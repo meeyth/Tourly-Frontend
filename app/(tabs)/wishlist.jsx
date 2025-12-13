@@ -1,84 +1,99 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, FlatList, TouchableOpacity, Alert } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MaterialIcons } from "@expo/vector-icons";
 
-const STORAGE_KEY = "wishlist_v1";
-
-const DESTINATIONS = [
-  {
-    id: "munnar-hills",
-    title: "Munnar Hills",
-    location: "Kerala, India",
-    image:
-      "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800&q=60&auto=format&fit=crop",
-  },
-  {
-    id: "pangong-tso",
-    title: "Pangong Tso",
-    location: "Ladakh, India",
-    image:
-      "https://images.unsplash.com/photo-1648851460314-ba293ba2cdcf?w=900&auto=format&fit=crop",
-  },
-];
+const API_BASE_URL = "https://tourly-backend-3fa2.onrender.com/api/v1";
+const TOKEN_KEY = "accessToken"; // change if different
 
 export default function WishlistScreen() {
-  const [wishlist, setWishlist] = useState(["munnar-hills", "pangong-tso"]);
+  const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadWishlist();
+    fetchWishlist();
   }, []);
 
-  const loadWishlist = async () => {
+  /* ---------------- FETCH WISHLIST ---------------- */
+  const fetchWishlist = async () => {
     try {
-      const saved = await AsyncStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        setWishlist(JSON.parse(saved));
-      }
+      const token = await AsyncStorage.getItem(TOKEN_KEY);
+
+      const res = await fetch(`${API_BASE_URL}/wishlist/my`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      setWishlist(data?.data?.posts || []);
     } catch (err) {
-      console.log("Wishlist load failed", err);
+      console.log("Wishlist fetch failed", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const saveWishlist = async (newList) => {
+  /* ---------------- REMOVE SINGLE POST ---------------- */
+  const removeFromWishlist = async (postId) => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
+      const token = await AsyncStorage.getItem(TOKEN_KEY);
+
+      await fetch(`${API_BASE_URL}/wishlist/remove/${postId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setWishlist((prev) => prev.filter((item) => item._id !== postId));
     } catch (err) {
-      console.log("Wishlist save failed", err);
+      console.log("Remove wishlist failed", err);
     }
   };
 
-  const removeFromWishlist = (id) => {
-    const newList = wishlist.filter((x) => x !== id);
-    setWishlist(newList);
-    saveWishlist(newList);
-  };
-
+  /* ---------------- CLEAR WISHLIST ---------------- */
   const clearWishlist = () => {
-    Alert.alert("Clear Wishlist?", "This will remove all saved destinations.", [
+    Alert.alert("Clear Wishlist?", "This will remove all saved posts.", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Clear",
         style: "destructive",
         onPress: async () => {
-          setWishlist([]);
-          await AsyncStorage.removeItem(STORAGE_KEY);
+          try {
+            const token = await AsyncStorage.getItem(TOKEN_KEY);
+
+            await fetch(`${API_BASE_URL}/wishlist/clear`, {
+              method: "DELETE",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+
+            setWishlist([]);
+          } catch (err) {
+            console.log("Clear wishlist failed", err);
+          }
         },
       },
     ]);
   };
 
-  const wishlistedDestinations = DESTINATIONS.filter((d) => wishlist.includes(d.id));
-
+  /* ---------------- RENDER ITEM ---------------- */
   const renderItem = ({ item }) => (
     <View className="flex-row bg-white/70 border border-black/5 rounded-xl overflow-hidden mb-3">
       <Image
-        source={{ uri: item.image }}
+        source={{ uri: item?.images?.[0] }}
         className="w-[110px] h-[96px]"
         resizeMode="cover"
       />
@@ -88,19 +103,20 @@ export default function WishlistScreen() {
           {item.title}
         </Text>
         <Text className="text-[13px] text-slate-600 mt-[2px]">
-          {item.location}
+          {item.location?.city}, {item.location?.country}
         </Text>
       </View>
 
       <TouchableOpacity
-        onPress={() => removeFromWishlist(item.id)}
-        className="p-3 flex justify-center"
+        onPress={() => removeFromWishlist(item._id)}
+        className="p-3 justify-center"
       >
         <MaterialIcons name="favorite" size={24} color="#ef4444" />
       </TouchableOpacity>
     </View>
   );
 
+  /* ---------------- UI ---------------- */
   return (
     <LinearGradient
       colors={["#acd9f6", "#ffffff"]}
@@ -115,26 +131,31 @@ export default function WishlistScreen() {
             Wishlist
           </Text>
 
-          <TouchableOpacity onPress={clearWishlist}>
-            <Text className="text-red-500 font-semibold">Clear</Text>
-          </TouchableOpacity>
+          {wishlist.length > 0 && (
+            <TouchableOpacity onPress={clearWishlist}>
+              <Text className="text-red-500 font-semibold">Clear</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        <FlatList
-          data={wishlistedDestinations}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={{ padding: 16 }}
-          ListEmptyComponent={() => (
-            <View className="items-center mt-10 px-8">
-              <Text className="text-slate-700 text-[15px] text-center">
-                Your wishlist is empty. Add destinations you love and revisit
-                them anytime!
-              </Text>
-            </View>
-          )}
-          showsVerticalScrollIndicator={false}
-        />
+        {loading ? (
+          <ActivityIndicator size="large" className="mt-10" />
+        ) : (
+          <FlatList
+            data={wishlist}
+            keyExtractor={(item) => item._id}
+            renderItem={renderItem}
+            contentContainerStyle={{ padding: 16 }}
+            ListEmptyComponent={() => (
+              <View className="items-center mt-10 px-8">
+                <Text className="text-slate-700 text-[15px] text-center">
+                  Your wishlist is empty. Start saving posts you love ❤️
+                </Text>
+              </View>
+            )}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
       </SafeAreaView>
     </LinearGradient>
   );
