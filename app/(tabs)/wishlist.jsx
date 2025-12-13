@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -14,15 +15,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MaterialIcons } from "@expo/vector-icons";
 
 const API_BASE_URL = "https://tourly-backend-3fa2.onrender.com/api/v1";
-const TOKEN_KEY = "accessToken"; // change if different
+const TOKEN_KEY = "accessToken";
 
-export default function WishlistScreen() {
+const WishlistScreen = () => {
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchWishlist();
-  }, []);
+  const [refreshing, setRefreshing] = useState(false);
 
   /* ---------------- FETCH WISHLIST ---------------- */
   const fetchWishlist = async () => {
@@ -37,12 +35,23 @@ export default function WishlistScreen() {
 
       const data = await res.json();
       setWishlist(data?.data?.posts || []);
-    } catch (err) {
-      console.log("Wishlist fetch failed", err);
+    } catch (error) {
+      console.log("Wishlist fetch failed:", error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
+
+  useEffect(() => {
+    fetchWishlist();
+  }, []);
+
+  /* ---------------- PULL TO REFRESH ---------------- */
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchWishlist();
+  }, []);
 
   /* ---------------- REMOVE SINGLE POST ---------------- */
   const removeFromWishlist = async (postId) => {
@@ -57,8 +66,8 @@ export default function WishlistScreen() {
       });
 
       setWishlist((prev) => prev.filter((item) => item._id !== postId));
-    } catch (err) {
-      console.log("Remove wishlist failed", err);
+    } catch (error) {
+      console.log("Remove wishlist failed:", error);
     }
   };
 
@@ -81,8 +90,8 @@ export default function WishlistScreen() {
             });
 
             setWishlist([]);
-          } catch (err) {
-            console.log("Clear wishlist failed", err);
+          } catch (error) {
+            console.log("Clear wishlist failed:", error);
           }
         },
       },
@@ -124,39 +133,53 @@ export default function WishlistScreen() {
       end={{ x: 1, y: 0.35 }}
       style={{ flex: 1 }}
     >
-      <SafeAreaView className="flex-1">
-        {/* HEADER */}
-        <View className="flex-row px-4 pt-4 items-center justify-between">
-          <Text className="text-2xl font-extrabold text-slate-900">
-            Wishlist
-          </Text>
+      <SafeAreaView className="flex-1 w-full">
 
-          {wishlist.length > 0 && (
-            <TouchableOpacity onPress={clearWishlist}>
-              <Text className="text-red-500 font-semibold">Clear</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {loading ? (
-          <ActivityIndicator size="large" className="mt-10" />
+        {/* FULL SCREEN LOADER (same as Home) */}
+        {loading && !refreshing ? (
+          <View className="flex-1 justify-center items-center">
+            <ActivityIndicator size="large" color="#1E90FF" />
+          </View>
         ) : (
           <FlatList
             data={wishlist}
             keyExtractor={(item) => item._id}
             renderItem={renderItem}
+            showsVerticalScrollIndicator={false}
             contentContainerStyle={{ padding: 16 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#1E90FF"        // iOS
+                colors={["#1E90FF"]}       // Android
+              />
+            }
+            ListHeaderComponent={() => (
+              <View className="flex-row px-4 pt-4 items-center justify-between">
+                <Text className="text-2xl font-extrabold text-slate-900">
+                  Wishlist
+                </Text>
+
+                {wishlist.length > 0 && (
+                  <TouchableOpacity onPress={clearWishlist}>
+                    <Text className="text-red-500 font-semibold">Clear</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
             ListEmptyComponent={() => (
-              <View className="items-center mt-10 px-8">
+              <View className="items-center mt-20 px-8">
                 <Text className="text-slate-700 text-[15px] text-center">
                   Your wishlist is empty. Start saving posts you love ❤️
                 </Text>
               </View>
             )}
-            showsVerticalScrollIndicator={false}
           />
         )}
       </SafeAreaView>
     </LinearGradient>
   );
-}
+};
+
+export default WishlistScreen;

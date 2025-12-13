@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
+  RefreshControl, // 👈 ADD
 } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -28,24 +29,32 @@ const Home = () => {
   const [mostLiked, setMostLiked] = useState([]);
   const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false); // 👈 ADD
+
+  const loadHomeData = async () => {
+    try {
+      const data = await fetchHomeData();
+      setMostLiked(data.mostLiked || []);
+      setRecent(data.recent || []);
+    } catch (error) {
+      console.log("Home API error:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    const loadHomeData = async () => {
-      try {
-        const data = await fetchHomeData();
-        setMostLiked(data.mostLiked || []);
-        setRecent(data.recent || []);
-      } catch (error) {
-        console.log("Home API error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadHomeData();
   }, []);
 
-  if (loading) {
+  // 👇 PULL TO REFRESH HANDLER
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadHomeData();
+  }, []);
+
+  if (loading && !refreshing) {
     return (
       <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" />
@@ -61,8 +70,18 @@ const Home = () => {
       style={styles.container}
     >
       <SafeAreaView className="flex-1 w-full">
-        <ScrollView showsVerticalScrollIndicator={false}>
-          
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#1E90FF"        // iOS
+              colors={["#1E90FF"]}       // Android
+            />
+          }
+        >
+
           {/* ===== HEADER ===== */}
           <View className="px-5 mt-5 flex-row items-center justify-between">
             <TouchableOpacity>
