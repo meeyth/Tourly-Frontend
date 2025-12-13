@@ -11,7 +11,6 @@ import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
-import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 
@@ -20,105 +19,101 @@ const Add_Post = () => {
   const [description, setDescription] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
-  const [images, setImages] = useState([]); // ✅ array
+  const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
 
-  // Pick Image(s)
+  // ---------------- PICK IMAGES ----------------
   const pickImage = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    try {
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-    if (!permission.granted) {
-      Alert.alert("Permission required", "Gallery access needed");
+      if (!permission.granted) {
+        Alert.alert("Permission required", "Gallery access needed");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsMultipleSelection: true,
+      });
+
+      if (!result.canceled && result.assets?.length) {
+        setImages(result.assets);
+      }
+    } catch (error) {
+      console.log("Image picker error:", error);
+      Alert.alert("Error", "Could not open image picker");
+    }
+  };
+
+  // ---------------- SUBMIT POST ----------------
+  const handleSubmit = async () => {
+  if (!title || !city || !country || images.length === 0) {
+    return Alert.alert("Error", "All fields & images required");
+  }
+
+  try {
+    setLoading(true);
+
+    const token = await AsyncStorage.getItem("accessToken");
+
+    if (!token) {
+      Alert.alert("Auth error", "Token missing, please login again");
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      allowsMultipleSelection: true,
-      quality: 0.8,
-    });
+    const formData = new FormData();
 
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      // replace current images with selected ones
-      setImages(result.assets);
-    }
-  };
+    formData.append("title", title);
+    formData.append("description", description);
+    formData.append("location[city]", city);
+    formData.append("location[country]", country);
 
-  const removeImage = (index) => {
-    if (!Array.isArray(images)) return;
-    setImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-
-
-
-  // Submit Post
-  const handleSubmit = async () => {
-    if (!title || !city || !country || !Array.isArray(images) || images.length === 0) {
-      return Alert.alert("Error", "All fields and at least one image required");
-    }
-
-    try {
-      setLoading(true);
-
-      const formData = new FormData();
-
-      formData.append("title", title);
-      formData.append("description", description);
-
-      // ✅ backend expects location object
-      formData.append("location[city]", city);
-      formData.append("location[country]", country);
-
-      // ✅ images[] for multer.array("images")
-      images.forEach((img, index) => {
-        formData.append("images", {
-          uri: img.uri,
-          name: `post_${index}.jpg`,
-          type: "image/jpeg",
-        });
+    images.forEach((img, index) => {
+      formData.append("images", {
+        uri: img.uri,
+        name: `post_${index}.jpg`,
+        type: "image/jpeg",
       });
+    });
+  console.log("ACCESS TOKEN:", token);
 
-      const token = await AsyncStorage.getItem("accessToken");
-
-      const response = await fetch(
-        "https://tourly-backend-3fa2.onrender.com/api/v1/posts",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            // DO NOT SET Content-Type
-          },
-          body: formData,
-        }
-      );
-
-      const text = await response.text();
-      const data = JSON.parse(text);
-
-      if (!response.ok) {
-        return Alert.alert("Error", data.message || "Upload failed");
+    const response = await fetch(
+      "https://tourly-backend-3fa2.onrender.com/api/v1/posts",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+        body: formData,
       }
+    );
 
-      Alert.alert("Success", "Post created successfully!");
-      router.back();
+    const text = await response.text();
+    console.log("SERVER RESPONSE:", text);
 
-      // reset
-      setTitle("");
-      setDescription("");
-      setCity("");
-      setCountry("");
-      setImages([]);
-    } catch (err) {
-      console.log("Upload error:", err);
-      Alert.alert("Error", err.message || "Something went wrong");
-    } finally {
-      setLoading(false);
+    const data = text ? JSON.parse(text) : {};
+
+    if (!response.ok) {
+      throw new Error(data.message || "Upload failed");
     }
-  };
+
+    Alert.alert("Success", "Post created!");
+    router.back();
+
+  } catch (error) {
+    console.log("UPLOAD ERROR:", error);
+    Alert.alert("Upload Error", error.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <LinearGradient
@@ -127,9 +122,8 @@ const Add_Post = () => {
       end={{ x: 1, y: 0.35 }}
       className="flex-1"
     >
-      <SafeAreaView className="flex-1 w-full">
+      <SafeAreaView className="flex-1">
         <ScrollView contentContainerStyle={{ padding: 20 }}>
-
           <Text className="text-2xl font-bold text-center mb-6">
             Add New Post
           </Text>
@@ -172,24 +166,18 @@ const Add_Post = () => {
             </Text>
           </TouchableOpacity>
 
-          {Array.isArray(images) && images.map((img, idx) => (
-            <View key={idx} className="mb-4 relative">
-              <Image
-                source={{ uri: img.uri }}
-                className="w-full h-52 rounded-xl"
-              />
-              <TouchableOpacity
-                className="absolute top-2 right-2 bg-white p-1 rounded-full"
-                onPress={() => removeImage(idx)}
-                activeOpacity={0.8}
-              >
-                <MaterialIcons name="close" size={22} color="#ef4444" />
-              </TouchableOpacity>
-            </View>
+          {images.map((img, idx) => (
+            <Image
+              key={idx}
+              source={{ uri: img.uri }}
+              className="w-full h-52 rounded-xl mb-4"
+            />
           ))}
 
           <TouchableOpacity
-            className="bg-green-600 p-4 rounded-xl items-center"
+            className={`p-4 rounded-xl items-center ${
+              loading ? "bg-gray-400" : "bg-green-600"
+            }`}
             onPress={handleSubmit}
             disabled={loading}
           >
@@ -197,7 +185,6 @@ const Add_Post = () => {
               {loading ? "Uploading..." : "Submit Post"}
             </Text>
           </TouchableOpacity>
-
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
