@@ -7,16 +7,12 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  RefreshControl, // 👈 ADD
+  RefreshControl,
 } from "react-native";
 import React, { useEffect, useState, useCallback } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import {
-  Entypo,
-  Ionicons,
-  FontAwesome6,
-} from "@expo/vector-icons";
+import { Entypo, Ionicons, FontAwesome6 } from "@expo/vector-icons";
 
 import images from "@/constants/images";
 import icons from "@/constants/icons";
@@ -29,7 +25,7 @@ const Home = () => {
   const [mostLiked, setMostLiked] = useState([]);
   const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false); // 👈 ADD
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadHomeData = async () => {
     try {
@@ -48,7 +44,6 @@ const Home = () => {
     loadHomeData();
   }, []);
 
-  // 👇 PULL TO REFRESH HANDLER
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadHomeData();
@@ -76,12 +71,11 @@ const Home = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#1E90FF"        // iOS
-              colors={["#1E90FF"]}       // Android
+              tintColor="#1E90FF"
+              colors={["#1E90FF"]}
             />
           }
         >
-
           {/* ===== HEADER ===== */}
           <View className="px-5 mt-5 flex-row items-center justify-between">
             <TouchableOpacity>

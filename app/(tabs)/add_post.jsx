@@ -67,7 +67,6 @@ const Add_Post = () => {
     }
 
     const formData = new FormData();
-
     formData.append("title", title);
     formData.append("description", description);
     formData.append("location[city]", city);
@@ -80,7 +79,6 @@ const Add_Post = () => {
         type: "image/jpeg",
       });
     });
-  console.log("ACCESS TOKEN:", token);
 
     const response = await fetch(
       "https://tourly-backend-3fa2.onrender.com/api/v1/posts",
@@ -95,8 +93,6 @@ const Add_Post = () => {
     );
 
     const text = await response.text();
-    console.log("SERVER RESPONSE:", text);
-
     const data = text ? JSON.parse(text) : {};
 
     if (!response.ok) {
@@ -104,6 +100,15 @@ const Add_Post = () => {
     }
 
     Alert.alert("Success", "Post created!");
+
+    // ------------------- RESET FORM -------------------
+    setTitle("");
+    setDescription("");
+    setCity("");
+    setCountry("");
+    setImages([]);
+
+    // optionally navigate back
     router.back();
 
   } catch (error) {
@@ -113,6 +118,7 @@ const Add_Post = () => {
     setLoading(false);
   }
 };
+
 
 
   return (
@@ -129,14 +135,14 @@ const Add_Post = () => {
           </Text>
 
           <TextInput
-            className="bg-white p-3 rounded-xl border mb-4"
+            className="bg-white p-3 rounded-xl border border-white mb-4"
             placeholder="Post Title"
             value={title}
             onChangeText={setTitle}
           />
 
           <TextInput
-            className="bg-white p-3 rounded-xl border mb-4 h-28"
+            className="bg-white p-3 rounded-xl border border-white mb-4 h-28"
             placeholder="Description"
             value={description}
             onChangeText={setDescription}
@@ -144,14 +150,14 @@ const Add_Post = () => {
           />
 
           <TextInput
-            className="bg-white p-3 rounded-xl border mb-4"
+            className="bg-white p-3 rounded-xl border border-white mb-4"
             placeholder="City"
             value={city}
             onChangeText={setCity}
           />
 
           <TextInput
-            className="bg-white p-3 rounded-xl border mb-4"
+            className="bg-white p-3 rounded-xl border border-white mb-4"
             placeholder="Country"
             value={country}
             onChangeText={setCountry}

@@ -7,14 +7,18 @@ const PopularCard = ({ data }) => {
   const [posts, setPosts] = useState(data);
   const [userId, setUserId] = useState(null);
 
-  // Get current user ID from AsyncStorage
   useEffect(() => {
-    AsyncStorage.getItem("userId").then((id) => {
+    setPosts(data);
+  }, [data]);
+
+  // Get current user ID
+  useEffect(() => {
+    AsyncStorage.getItem("userId").then(id => {
       if (!id) return;
       try {
-        setUserId(JSON.parse(id)); // if stored as JSON
+        setUserId(JSON.parse(id));
       } catch {
-        setUserId(id); // if stored as plain string
+        setUserId(id);
       }
     });
   }, []);
@@ -22,6 +26,7 @@ const PopularCard = ({ data }) => {
   const handleLike = async (postId) => {
     try {
       const token = await AsyncStorage.getItem("accessToken");
+      if (!token) return;
 
       const res = await fetch(
         `https://tourly-backend-3fa2.onrender.com/api/v1/posts/${postId}/like`,
@@ -36,29 +41,26 @@ const PopularCard = ({ data }) => {
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "Like failed");
 
-      // Update post in state with new likes from backend
-      setPosts((prev) =>
-        prev.map((post) =>
-          post._id === postId ? json.data : post
-        )
+      setPosts(prev =>
+        prev.map(post => post._id === postId ? json.data : post)
       );
+
     } catch (err) {
       console.log("Like error:", err.message);
     }
   };
 
+  if (!posts || posts.length === 0) {
+    return <Text className="text-center text-gray-400 py-5">No posts available</Text>;
+  }
+
   return (
     <View>
-      {posts.map((post) => {
+      {posts.map(post => {
         const normalizedUserId = userId ? String(userId).replace(/"/g, "") : null;
-
-        const isLiked =
-          !!normalizedUserId &&
-          post.likes?.some((like) =>
-            typeof like === "object"
-              ? String(like._id) === normalizedUserId
-              : String(like) === normalizedUserId
-          );
+        const isLiked = !!normalizedUserId && post.likes?.some(like =>
+          (typeof like === "object" ? String(like._id) : String(like)) === normalizedUserId
+        );
 
         return (
           <View key={post._id} className="mb-5 bg-white rounded-2xl p-3">
@@ -75,7 +77,6 @@ const PopularCard = ({ data }) => {
                 </Text>
               </View>
 
-              {/* ❤️ LIKE BUTTON */}
               <TouchableOpacity onPress={() => handleLike(post._id)}>
                 <Ionicons
                   name={isLiked ? "heart" : "heart-outline"}
