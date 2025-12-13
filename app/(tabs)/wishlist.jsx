@@ -147,7 +147,7 @@ const Wishlist = () => {
                 </Text>
                 {wishlist.length > 0 && (
                   <TouchableOpacity onPress={clearWishlist}>
-                    <Text className="text-red-500 font-semibold">Clear</Text>
+                    <Text className="text-blue-500 font-semibold ">Clear</Text>
                   </TouchableOpacity>
                 )}
               </View>
