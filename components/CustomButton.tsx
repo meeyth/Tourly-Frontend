@@ -2,7 +2,7 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import React from 'react'
 
 
-const CustomButton = ({ title, onPress,isLoading = false }) => {
+const CustomButton = ({ title, onPress, isLoading = false }: { title: string; onPress: () => void; isLoading?: boolean }) => {
   return (
     <TouchableOpacity
       onPress={onPress}

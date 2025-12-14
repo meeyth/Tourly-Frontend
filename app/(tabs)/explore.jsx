@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,17 +8,21 @@ import {
   TextInput,
   ActivityIndicator,
   StyleSheet,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+
 const API_BASE_URL = "https://tourly-backend-3fa2.onrender.com/api/v1";
-const explore = () => {
+
+const Explore = () => {
   const router = useRouter();
   const [posts, setPosts] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false); // ✅ refresh state
 
   const fetchPosts = async () => {
     try {
@@ -29,6 +33,7 @@ const explore = () => {
       console.log("Explore error:", err);
     } finally {
       setLoading(false);
+      setRefreshing(false); // ✅ stop refreshing
     }
   };
 
@@ -36,9 +41,16 @@ const explore = () => {
     fetchPosts();
   }, []);
 
-  const filteredPosts = posts.filter(post =>
-    post.title?.toLowerCase().includes(search.toLowerCase()) ||
-    post.location?.city?.toLowerCase().includes(search.toLowerCase())
+  // ✅ Pull-to-refresh handler
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchPosts();
+  }, []);
+
+  const filteredPosts = posts.filter(
+    (post) =>
+      post.title?.toLowerCase().includes(search.toLowerCase()) ||
+      post.location?.city?.toLowerCase().includes(search.toLowerCase())
   );
 
   const renderItem = ({ item }) => (
@@ -69,9 +81,7 @@ const explore = () => {
     >
       <SafeAreaView className="flex-1 w-full">
         <View className="px-4 pt-5 pb-3">
-          <Text className="text-2xl font-extrabold text-slate-900">
-            Explore
-          </Text>
+          <Text className="text-2xl font-extrabold text-slate-900">Explore</Text>
           <View className="flex-row items-center bg-white rounded-xl mt-3 px-3 py-2 border border-slate-200">
             <Ionicons name="search" size={18} color="#888" />
             <TextInput
@@ -83,7 +93,8 @@ const explore = () => {
             />
           </View>
         </View>
-        {loading ? (
+
+        {loading && !refreshing ? (
           <View className="flex-1 justify-center items-center">
             <ActivityIndicator size="large" color="#1E90FF" />
           </View>
@@ -95,6 +106,14 @@ const explore = () => {
             numColumns={3}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 120 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={["#1E90FF"]}
+                tintColor="#1E90FF"
+              />
+            }
           />
         )}
       </SafeAreaView>
@@ -102,7 +121,7 @@ const explore = () => {
   );
 };
 
-export default explore;
+export default Explore;
 
 const styles = StyleSheet.create({
   container: {

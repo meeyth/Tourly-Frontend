@@ -1,56 +1,123 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   Alert,
+  Image,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const UPDATE_API =
+  "https://tourly-backend-3fa2.onrender.com/api/v1/users/update";
 
 export default function EditProfile() {
   const router = useRouter();
 
-  const INITIAL_USERNAME = "John Doe";
-  const EMAIL = "johndoe@gmail.com";
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [avatar, setAvatar] = useState(null);
+  const [initialUsername, setInitialUsername] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const [username, setUsername] = useState(INITIAL_USERNAME);
-  const [oldPassword, setOldPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
+  // 🔹 Load profile data
+  useEffect(() => {
+  fetchProfile();
+}, []);
 
-  const usernameChanged = username !== INITIAL_USERNAME;
-  const passwordTouched = oldPassword.length > 0 || newPassword.length > 0;
+const fetchProfile = async () => {
+  try {
+    const token = await AsyncStorage.getItem("accessToken");
 
-  const hasChanges = usernameChanged || passwordTouched;
+    const res = await fetch(
+      "https://tourly-backend-3fa2.onrender.com/api/v1/users/profile",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
 
-  const handleSave = () => {
-    if (!hasChanges) return;
+    const json = await res.json();
 
+    if (!res.ok) throw new Error(json.message);
+
+    setUsername(json.data.profile.username);
+    setEmail(json.data.profile.email); // read-only
+    setAvatar(json.data.profile.avatar);
+    setInitialUsername(json.data.profile.username);
+  } catch (err) {
+    Alert.alert("Error", err.message);
+  }
+};
+
+
+  const hasChanges = username !== initialUsername || avatar;
+
+  // 📸 Pick new avatar
+  const pickAvatar = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setAvatar(result.assets[0].uri);
+    }
+  };
+
+  // 💾 Save profile
+  const handleSave = async () => {
     if (!username.trim()) {
       Alert.alert("Validation", "Username cannot be empty");
       return;
     }
-    if (passwordTouched) {
-      if (!oldPassword || !newPassword) {
-        Alert.alert(
-          "Password",
-          "Please enter both old and new password"
-        );
-        return;
+
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem("accessToken");
+
+      const formData = new FormData();
+      formData.append("username", username);
+
+      if (avatar?.startsWith("file")) {
+        formData.append("avatar", {
+          uri: avatar,
+          name: "avatar.jpg",
+          type: "image/jpeg",
+        });
       }
 
-      if (newPassword.length < 6) {
-        Alert.alert(
-          "Weak Password",
-          "New password must be at least 6 characters"
-        );
-        return;
-      }
+      const res = await fetch(UPDATE_API, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message);
+
+      // Update local profile cache
+      await AsyncStorage.setItem(
+        "profile",
+        JSON.stringify(json.data)
+      );
+
+      Alert.alert("Success", "Profile updated");
+      router.back();
+    } catch (error) {
+      Alert.alert("Error", error.message);
+    } finally {
+      setLoading(false);
     }
-    Alert.alert("Success", "Profile updated successfully");
-    router.back();
   };
 
   return (
@@ -61,11 +128,11 @@ export default function EditProfile() {
       className="flex-1"
     >
       <SafeAreaView className="flex-1">
-        <View className="px-5 pt-6 flex-row items-center justify-between">
+        {/* Header */}
+        <View className="px-5 pt-6 flex-row justify-between items-center">
           <Text className="text-2xl font-extrabold text-slate-900">
             Edit Profile
           </Text>
-
           <TouchableOpacity onPress={() => router.back()}>
             <Text className="text-blue-500 font-semibold">
               Cancel
@@ -74,6 +141,25 @@ export default function EditProfile() {
         </View>
 
         <View className="px-5 mt-8">
+          {/* Avatar */}
+          <TouchableOpacity
+            onPress={pickAvatar}
+            className="items-center mb-6"
+          >
+            <Image
+              source={{
+                uri:
+                  avatar ||
+                  "https://cdn-icons-png.flaticon.com/512/847/847969.png",
+              }}
+              className="w-28 h-28 rounded-full border-4 border-white"
+            />
+            <Text className="mt-2 text-blue-500 font-medium">
+              Change Avatar
+            </Text>
+          </TouchableOpacity>
+
+          {/* Username */}
           <Text className="text-sm font-medium text-slate-800 mb-2">
             Username
           </Text>
@@ -81,57 +167,33 @@ export default function EditProfile() {
             value={username}
             onChangeText={setUsername}
             className="bg-white rounded-xl px-4 py-3 border border-slate-200 mb-5"
-            placeholder="Enter username"
           />
 
+          {/* Email (read-only) */}
           <Text className="text-sm font-medium text-slate-800 mb-2">
-            Email (Not Editable)
-          </Text>
-          <View className="bg-slate-100 rounded-xl px-4 py-3 border border-slate-200 mb-5">
-            <Text className="text-slate-600">
-              {EMAIL}
-            </Text>
-          </View>
-
-          <Text className="text-sm font-medium text-slate-800 mb-2">
-            Old Password
+            Email
           </Text>
           <TextInput
-            value={oldPassword}
-            onChangeText={setOldPassword}
-            secureTextEntry
-            className="bg-white rounded-xl px-4 py-3 border border-slate-200 mb-5"
-            placeholder="Enter old password"
+            value={email}
+            editable={false}
+            className="bg-slate-100 rounded-xl px-4 py-3 border border-slate-200 mb-8 text-slate-600"
           />
 
-
-          <Text className="text-sm font-medium text-slate-800 mb-2">
-            New Password
-          </Text>
-          <TextInput
-            value={newPassword}
-            onChangeText={setNewPassword}
-            secureTextEntry
-            className="bg-white rounded-xl px-4 py-3 border border-slate-200 mb-8"
-            placeholder="Enter new password"
-          />
-
+          {/* Save */}
           <TouchableOpacity
             onPress={handleSave}
-            disabled={!hasChanges}
+            disabled={!hasChanges || loading}
             className={`rounded-2xl py-4 items-center ${
-              hasChanges
-                ? "bg-[#82c5fb]"
-                : "bg-slate-300"
+              hasChanges ? "bg-[#82c5fb]" : "bg-slate-300"
             }`}
           >
-            <Text
-              className={`font-bold text-lg ${
-                hasChanges ? "text-white" : "text-slate-500"
-              }`}
-            >
-              Save Changes
-            </Text>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text className="text-white font-bold text-lg">
+                Save Changes
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
       </SafeAreaView>
