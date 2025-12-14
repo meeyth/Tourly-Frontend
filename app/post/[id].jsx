@@ -16,9 +16,9 @@ const { width, height } = Dimensions.get("window");
 
 export default function PostDetails() {
   const router = useRouter();
-  const params = useLocalSearchParams();
+  const { post } = useLocalSearchParams();
 
-  if (!params?.post) {
+  if (!post) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-white">
         <Text>Post not found</Text>
@@ -26,7 +26,7 @@ export default function PostDetails() {
     );
   }
 
-  const parsedPost = JSON.parse(params.post);
+  const parsedPost = JSON.parse(post);
 
   const [viewerVisible, setViewerVisible] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -40,6 +40,29 @@ export default function PostDetails() {
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView showsVerticalScrollIndicator={false}>
 
+        {/* ===== USER INFO (TOP) ===== */}
+        <View className="flex-row items-center px-5 py-4">
+          <TouchableOpacity className="flex-row items-center">
+            <Image
+              source={{
+                uri:
+                  parsedPost.createdBy?.avatar ||
+                  "https://ui-avatars.com/api/?name=User",
+              }}
+              className="w-12 h-12 rounded-full mr-3"
+            />
+            <View>
+              <Text className="font-semibold text-base text-slate-900">
+                {parsedPost.createdBy?.username || "Unknown User"}
+              </Text>
+              <Text className="text-xs text-slate-500">
+                Post creator
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* ===== POST IMAGE ===== */}
         <TouchableOpacity activeOpacity={0.9} onPress={() => openViewer(0)}>
           <Image
             source={{ uri: parsedPost.images?.[0] }}
@@ -48,6 +71,7 @@ export default function PostDetails() {
           />
         </TouchableOpacity>
 
+        {/* ===== CONTENT ===== */}
         <View className="px-5 pt-5 pb-6">
 
           {/* TITLE */}
@@ -55,6 +79,7 @@ export default function PostDetails() {
             {parsedPost.title}
           </Text>
 
+          {/* LOCATION */}
           <View className="flex-row items-center mt-2">
             <Ionicons name="location-outline" size={16} color="#3b82f6" />
             <Text className="ml-1 text-slate-600">
@@ -62,6 +87,7 @@ export default function PostDetails() {
             </Text>
           </View>
 
+          {/* LIKES */}
           <View className="flex-row items-center mt-2">
             <Ionicons name="heart" size={16} color="#ef4444" />
             <Text className="ml-1 text-slate-600">
@@ -71,6 +97,7 @@ export default function PostDetails() {
 
           <View className="h-[1px] bg-slate-200 my-5" />
 
+          {/* DESCRIPTION */}
           <Text className="text-lg font-bold text-slate-900 mb-1">
             Description
           </Text>
@@ -78,6 +105,7 @@ export default function PostDetails() {
             {parsedPost.description || "No description available."}
           </Text>
 
+          {/* MORE PHOTOS */}
           {parsedPost.images?.length > 1 && (
             <View className="mt-6">
               <Text className="text-lg font-bold text-slate-900 mb-3">
@@ -108,6 +136,7 @@ export default function PostDetails() {
         </View>
       </ScrollView>
 
+      {/* BACK BUTTON */}
       <View className="px-5 pb-4">
         <TouchableOpacity
           onPress={() => router.back()}
@@ -117,9 +146,9 @@ export default function PostDetails() {
         </TouchableOpacity>
       </View>
 
+      {/* IMAGE VIEWER */}
       <Modal visible={viewerVisible} transparent animationType="fade">
         <View className="flex-1 bg-black">
-
           <TouchableOpacity
             onPress={() => setViewerVisible(false)}
             className="absolute top-12 right-6 z-10"

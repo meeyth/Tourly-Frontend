@@ -13,32 +13,44 @@ import React, { useEffect, useState, useCallback } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Entypo, Ionicons, FontAwesome6 } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 import images from "@/constants/images";
 import icons from "@/constants/icons";
-import Filters from "../../components/Filters";
 import StyleCard from "../../components/StyleCard";
 import PopularCard from "../../components/PopularCard";
-import { fetchHomeData } from "@/services/home.service";
+import ExploreCard from "../../components/ExploreCard";
+import { fetchHomeData , fetchAllPosts} from "@/services/home.service";
 
 const Home = () => {
+  const [allPosts, setAllPosts] = useState([]);
   const [mostLiked, setMostLiked] = useState([]);
   const [recent, setRecent] = useState([]);
+  const [search, setSearch] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState("all"); // ⭐
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const router = useRouter();
+
+  const shuffleArray = (arr) => {
+  return [...arr].sort(() => Math.random() - 0.5);
+};
   const loadHomeData = async () => {
-    try {
-      const data = await fetchHomeData();
-      setMostLiked(data.mostLiked || []);
-      setRecent(data.recent || []);
-    } catch (error) {
-      console.log("Home API error:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+  try {
+    const data = await fetchHomeData();
+    setMostLiked(data.mostLiked || []);
+    setRecent(data.recent || []);
+
+    const posts = await fetchAllPosts();
+    setAllPosts(shuffleArray(posts)); // 🎯 RANDOM
+  } catch (error) {
+    console.log("Home API error:", error);
+  } finally {
+    setLoading(false);
+    setRefreshing(false);
+  }
+};
 
   useEffect(() => {
     loadHomeData();
@@ -48,6 +60,22 @@ const Home = () => {
     setRefreshing(true);
     loadHomeData();
   }, []);
+
+  // 🔍 SEARCH FILTER (same as Explore)
+  const filterPosts = (posts) =>
+    posts.filter(
+      (post) =>
+        post.title?.toLowerCase().includes(search.toLowerCase()) ||
+        post.location?.city?.toLowerCase().includes(search.toLowerCase())
+    );
+
+  const filteredMostLiked = filterPosts(mostLiked);
+  const filteredRecent = filterPosts(recent);
+
+  // 🎯 FILTER VISIBILITY
+  const showMostLiked =
+    selectedFilter === "all" || selectedFilter === "mostLiked";
+  const showRecent = selectedFilter === "all" || selectedFilter === "recent";
 
   if (loading && !refreshing) {
     return (
@@ -78,12 +106,12 @@ const Home = () => {
         >
           {/* ===== HEADER ===== */}
           <View className="px-5 mt-5 flex-row items-center justify-between">
-            <TouchableOpacity>
-              <Image
-                source={images.avatar}
-                className="w-12 h-12 rounded-full border-2 border-white"
-              />
-            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push("/profile")}>
+  <Image
+    source={images.avatar}
+    className="w-12 h-12 rounded-full border-2 border-white"
+  />
+</TouchableOpacity>
 
             <View className="items-center">
               <Text className="text-sm">My Location</Text>
@@ -92,9 +120,13 @@ const Home = () => {
               </Text>
             </View>
 
-            <View className="bg-white w-12 h-12 rounded-full items-center justify-center">
-              <Ionicons name="notifications-outline" size={20} />
-            </View>
+            <TouchableOpacity
+  onPress={() => router.push("/wishlist")}
+  className="bg-white w-12 h-12 rounded-full items-center justify-center"
+>
+  <Ionicons name="heart-outline" size={20} />
+</TouchableOpacity>
+
           </View>
 
           {/* ===== SEARCH CARD ===== */}
@@ -107,40 +139,97 @@ const Home = () => {
               <Image source={icons.cloudSun} className="w-16 h-10" />
             </View>
 
-            <View className="flex-row items-center bg-white rounded-md mt-4 px-3">
+            <View className="flex-row items-center bg-white rounded-md mt-4 px-3 h-12">
               <Ionicons name="search" size={20} color="#888" />
               <TextInput
                 placeholder="Where would you like to go?"
                 placeholderTextColor="#888"
-                className="flex-1 px-2 py-2 text-sm"
+                value={search}
+                onChangeText={setSearch}
+                className="flex-1 px-2 text-sm"
               />
-              <TouchableOpacity className="p-2 bg-[#d6f0ff] rounded-md">
-                <Ionicons name="filter-outline" size={18} color="#3b82f6" />
-              </TouchableOpacity>
             </View>
 
-            <Filters />
+            {/* ===== FILTER TABS ===== */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="mt-4"
+            >
+              {[
+                { key: "all", label: "All" },
+                { key: "mostLiked", label: "Most Liked" },
+                { key: "recent", label: "Recently Added" },
+              ].map((item) => (
+                <TouchableOpacity
+                  key={item.key}
+                  onPress={() => setSelectedFilter(item.key)}
+                  className={`px-4 py-2 mr-3 rounded-full ${
+                    selectedFilter === item.key
+                      ? "bg-[#2271ac]"
+                      : "bg-[#69b3e3]"
+                  }`}
+                >
+                  <Text
+                    className={`text-sm font-semibold text-white ${
+                      selectedFilter === item.key ? "font-bold" : ""
+                    }`}
+                  >
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
 
+          
           {/* ===== MOST LIKED ===== */}
-          <View className="flex-row justify-between items-center w-[90%] mx-auto mt-8 mb-4">
-            <Text className="text-xl font-bold">
-              Most Liked <FontAwesome6 name="mountain-sun" size={18} />
-            </Text>
-            <Entypo name="dots-three-horizontal" size={22} color="grey" />
-          </View>
+          {showMostLiked && (
+            <>
+              <View className="flex-row justify-between items-center w-[90%] mx-auto mt-8 mb-4">
+                <Text className="text-xl font-bold">
+                  Most Liked <FontAwesome6 name="mountain-sun" size={18} />
+                </Text>
+                <Entypo name="dots-three-horizontal" size={22} color="grey" />
+              </View>
 
-          <StyleCard data={mostLiked} />
+              <StyleCard
+                data={filteredMostLiked}
+                horizontal={selectedFilter !== "mostLiked"} // ⭐ MAGIC LINE
+              />
+            </>
+          )}
 
-          {/* ===== RECENT POSTS ===== */}
-          <View className="flex-row justify-between items-center w-[90%] mx-auto mt-8 mb-4">
-            <Text className="text-xl font-bold">
-              Recently Added <Entypo name="location" size={18} />
-            </Text>
-            <Entypo name="dots-three-horizontal" size={22} color="grey" />
-          </View>
+          {/* ===== RECENTLY ADDED ===== */}
+          {showRecent && (
+            <>
+              <View className="flex-row justify-between items-center w-[90%] mx-auto mt-8 mb-4">
+                <Text className="text-xl font-bold">
+                  Recently Added <Entypo name="location" size={18} />
+                </Text>
+                <Entypo name="dots-three-horizontal" size={22} color="grey" />
+              </View>
 
-          <PopularCard data={recent} />
+              <PopularCard
+                data={filteredRecent}
+                horizontal={selectedFilter === "all"}
+              />
+            </>
+          )}
+          {selectedFilter === "all" && (
+  <>
+    <View className="flex-row justify-between items-center w-[90%] mx-auto mt-8 mb-4">
+      <Text className="text-xl font-bold">
+        Explore <Ionicons name="compass-outline" size={18} />
+      </Text>
+    </View>
+
+    <ExploreCard data={allPosts} />
+
+  </>
+)}
+
+
 
         </ScrollView>
       </SafeAreaView>

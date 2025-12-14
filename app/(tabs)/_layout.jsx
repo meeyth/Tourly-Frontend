@@ -93,7 +93,7 @@ export default function TabsLayout() {
                     title: "wishlist",
                     headerShown: false,
                     tabBarIcon: ({ focused }) => (
-                        <TabIcon focused={focused} icon={"map-marker-alt"} title="Save" />
+                        <TabIcon focused={focused} icon={"heart"} title="Save" />
                     ),
                 }}
             />
