@@ -2,8 +2,10 @@ import { View, Text, Image, TouchableOpacity } from "react-native";
 import React, { useState, useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 
 const PopularCard = ({ data }) => {
+  const router = useRouter();
   const [posts, setPosts] = useState(data);
   const [userId, setUserId] = useState(null);
 
@@ -11,7 +13,6 @@ const PopularCard = ({ data }) => {
     setPosts(data);
   }, [data]);
 
-  // Get current user ID
   useEffect(() => {
     AsyncStorage.getItem("userId").then(id => {
       if (!id) return;
@@ -51,31 +52,63 @@ const PopularCard = ({ data }) => {
   };
 
   if (!posts || posts.length === 0) {
-    return <Text className="text-center text-gray-400 py-5">No posts available</Text>;
+    return (
+      <Text className="text-center text-gray-400 py-5">
+        No posts available
+      </Text>
+    );
   }
 
   return (
     <View>
       {posts.map(post => {
-        const normalizedUserId = userId ? String(userId).replace(/"/g, "") : null;
-        const isLiked = !!normalizedUserId && post.likes?.some(like =>
-          (typeof like === "object" ? String(like._id) : String(like)) === normalizedUserId
-        );
+        const normalizedUserId = userId
+          ? String(userId).replace(/"/g, "")
+          : null;
+
+        const isLiked =
+          !!normalizedUserId &&
+          post.likes?.some(like =>
+            (typeof like === "object"
+              ? String(like._id)
+              : String(like)) === normalizedUserId
+          );
 
         return (
           <View key={post._id} className="mb-5 bg-white rounded-2xl p-3">
-            <Image
-              source={{ uri: post.images[0] }}
-              className="w-full h-52 rounded-xl"
-            />
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() =>
+                router.push({
+                  pathname: `/post/${post._id}`,
+                  params: {
+                    post: JSON.stringify(post),
+                  },
+                })
+              }
+            >
+              <Image
+                source={{ uri: post.images[0] }}
+                className="w-full h-52 rounded-xl"
+              />
 
-            <View className="flex-row justify-between items-center mt-3">
-              <View>
-                <Text className="font-bold text-lg">{post.title}</Text>
-                <Text className="text-gray-500 text-sm">
-                  {post.location.city}, {post.location.country}
-                </Text>
+              <View className="flex-row justify-between items-center mt-3">
+                <View>
+                  <Text className="font-bold text-lg">
+                    {post.title}
+                  </Text>
+                  <Text className="text-gray-500 text-sm">
+                    {post.location.city}, {post.location.country}
+                  </Text>
+                </View>
               </View>
+            </TouchableOpacity>
+
+            {/* LIKE BUTTON (SEPARATE) */}
+            <View className="flex-row justify-between items-center mt-2">
+              <Text className="text-gray-500">
+                {post.likes?.length || 0} likes
+              </Text>
 
               <TouchableOpacity onPress={() => handleLike(post._id)}>
                 <Ionicons
@@ -85,10 +118,6 @@ const PopularCard = ({ data }) => {
                 />
               </TouchableOpacity>
             </View>
-
-            <Text className="text-gray-500 mt-1">
-              {post.likes?.length || 0} likes
-            </Text>
           </View>
         );
       })}

@@ -13,11 +13,14 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 const API_BASE_URL = "https://tourly-backend-3fa2.onrender.com/api/v1";
 const TOKEN_KEY = "accessToken";
 
 const Wishlist = () => {
+  const router = useRouter();
+
   const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -84,26 +87,35 @@ const Wishlist = () => {
 
   const renderItem = ({ item }) => (
     <View className="flex-row bg-white rounded-xl shadow-md mb-3 items-center overflow-hidden">
-      {/* Text */}
-      <View className="flex-1 px-4 py-3">
-        <Text className="text-[15px] font-semibold text-slate-900">
-          {item.title}
-        </Text>
-        <Text className="text-[13px] text-slate-500 mt-1">
-          {item.location?.city}, {item.location?.country}
-        </Text>
-      </View>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        className="flex-row flex-1 items-center"
+        onPress={() =>
+          router.push({
+            pathname: `/post/${item._id}`,
+            params: {
+              post: JSON.stringify(item),
+            },
+          })
+        }
+      >
+        <View className="flex-1 px-4 py-3">
+          <Text className="text-[15px] font-semibold text-slate-900">
+            {item.title}
+          </Text>
+          <Text className="text-[13px] text-slate-500 mt-1">
+            {item.location?.city}, {item.location?.country}
+          </Text>
+        </View>
+        {item.images?.[0] && (
+          <Image
+            source={{ uri: item.images[0] }}
+            className="w-16 h-16 rounded-lg mr-2"
+            resizeMode="cover"
+          />
+        )}
+      </TouchableOpacity>
 
-      {/* Image */}
-      {item.images?.[0] && (
-        <Image
-          source={{ uri: item.images[0] }}
-          className="w-16 h-16 rounded-lg mr-2"
-          resizeMode="cover"
-        />
-      )}
-
-      {/* Remove */}
       <TouchableOpacity
         onPress={() => removeFromWishlist(item._id)}
         className="p-3"
@@ -147,7 +159,9 @@ const Wishlist = () => {
                 </Text>
                 {wishlist.length > 0 && (
                   <TouchableOpacity onPress={clearWishlist}>
-                    <Text className="text-blue-500 font-semibold ">Clear</Text>
+                    <Text className="text-blue-500 font-semibold">
+                      Clear
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -165,5 +179,4 @@ const Wishlist = () => {
     </LinearGradient>
   );
 };
-
 export default Wishlist;
