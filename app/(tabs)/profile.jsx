@@ -71,7 +71,7 @@ export default function Profile() {
           style: "destructive",
           onPress: async () => {
             await AsyncStorage.multiRemove(["accessToken", "userId"]);
-            router.replace("/(auth)/SignIn");
+            router.replace("/");
           },
         },
       ]
