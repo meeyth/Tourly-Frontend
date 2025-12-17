@@ -22,7 +22,6 @@ export default function Index() {
     Discover • Plan • Explore
   </Text>
 </View>
-      {/* 🌍 ROTATING EARTH — PLACE IT HERE */}
       <View className="absolute top-64 left-0 right-0 items-center">
         <LottieView
           source={require("@/assets/animations/earth.json")}

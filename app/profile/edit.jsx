@@ -26,7 +26,6 @@ export default function EditProfile() {
   const [initialUsername, setInitialUsername] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🔹 Load profile data
   useEffect(() => {
   fetchProfile();
 }, []);
@@ -60,7 +59,6 @@ const fetchProfile = async () => {
 
   const hasChanges = username !== initialUsername || avatar;
 
-  // 📸 Pick new avatar
   const pickAvatar = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -72,7 +70,6 @@ const fetchProfile = async () => {
     }
   };
 
-  // 💾 Save profile
   const handleSave = async () => {
     if (!username.trim()) {
       Alert.alert("Validation", "Username cannot be empty");
@@ -105,7 +102,6 @@ const fetchProfile = async () => {
       const json = await res.json();
       if (!res.ok) throw new Error(json.message);
 
-      // Update local profile cache
       await AsyncStorage.setItem(
         "profile",
         JSON.stringify(json.data)

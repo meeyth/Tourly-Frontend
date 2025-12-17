@@ -22,7 +22,7 @@ const Explore = () => {
   const [posts, setPosts] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false); // ✅ refresh state
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchPosts = async () => {
     try {
@@ -33,15 +33,13 @@ const Explore = () => {
       console.log("Explore error:", err);
     } finally {
       setLoading(false);
-      setRefreshing(false); // ✅ stop refreshing
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchPosts();
   }, []);
-
-  // ✅ Pull-to-refresh handler
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchPosts();
